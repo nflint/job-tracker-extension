@@ -26,6 +26,8 @@ input, textarea, select {
   border: 1px solid #D1D5DB;
   border-radius: 4px;
   font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .btn {
@@ -42,9 +44,17 @@ input, textarea, select {
   color: white;
 }
 
+.primary:hover {
+  background-color: #1D4ED8;
+}
+
 .secondary {
   background-color: #E5E7EB;
   color: #374151;
+}
+
+.secondary:hover {
+  background-color: #D1D5DB;
 }
 
 .button-group {
@@ -56,6 +66,7 @@ input, textarea, select {
   padding: 8px;
   border-radius: 4px;
   display: none;
+  margin-top: 8px;
 }
 
 .status.success {
@@ -66,4 +77,23 @@ input, textarea, select {
 .status.error {
   background-color: #FDE8E8;
   color: #9B1C1C;
+}
+
+.status.info {
+  background-color: #E1EFFE;
+  color: #1E429F;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+select {
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }

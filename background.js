@@ -1,4 +1,3 @@
-// background.js
 console.log('[Job Scraper] Background script loaded');
 
 // Keep track of tabs with content script loaded
