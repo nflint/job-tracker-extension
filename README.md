@@ -97,6 +97,19 @@
  
  ### Running Locally
  
+ You will need to run this locally. I plan on publishing some version of this to the chrome store at some point but this will be with the finished app (when it's finished). Currently it will only work with Zapier (for my initial testing purposes), but you can change that to easily work with any service. In order to do so you will need to update the `manifest.json` around line 15: 
+ 
+ ```json
+ "host_permissions": [
+    "https://*.linkedin.com/*",
+    "https://*.indeed.com/*",
+    "https://*.greenhouse.io/*",
+    "https://*.ziprecruiter.com/*",
+    "https://hooks.zapier.com/*", 
+    "https://YOUR.WEBHOOK.com/*"  ///add a line here!
+   ],
+```
+ 
  1. Download or clone via git
  
  2. Load in Chrome:
@@ -106,7 +119,7 @@
  - Select the extension directory
  
  3. if you don't have a webhook configured anywhere I can recommend several;
- - Zapier trial version is pretty east to set up  
+ - Zapier trial version is pretty east to set up and you won't have to make changes to the manifest.js file. 
  - [webhook.site(https://webhook.site/#!/view/dee280ad-7222-4e32-8485-db3a790b5abe)for testing only - I HAVE NO IDEA WHAT IS DONE WITH YOU DATA SO USE DUMMY DATA. 
  
  
@@ -163,6 +176,7 @@
  - Built using Chrome Extensions Manifest V3
  - Uses the chrome.scripting API for content script injection
  - Implements modern async/await patterns for Chrome APIs
+ - I was able to create this in 1/3 of the time, with only a vague notion of what I wanted to build thanks to AI!
  
  ## Support
  
