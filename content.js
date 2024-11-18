@@ -36,11 +36,11 @@ const SELECTORS = {
 	  type: 'text'
 	},
 	company: {
-	  selector: '.hiring_company_text, .company_name, .company',
+	  selector: '.company_name, .hiring_company_text',
 	  type: 'text'
 	},
 	description: {
-	  selector: '.jobDescriptionSection, .job_description',
+	  selector: '.job_description, [class*="whitespace-pre-line break-words"]',
 	  type: 'html'
 	}
   }
