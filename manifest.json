@@ -6,7 +6,8 @@
   "permissions": [
 	"activeTab",
 	"storage",
-	"scripting"
+	"scripting",
+	"tabs"
   ],
   "host_permissions": [
 	"https://*.linkedin.com/*",
@@ -29,6 +30,17 @@
 		"https://*.ziprecruiter.com/job/*"
 	  ],
 	  "js": ["content.js"]
+	}
+  ],
+  "web_accessible_resources": [
+	{
+	  "resources": ["content.js"],
+	  "matches": [
+		"https://*.linkedin.com/*",
+		"https://*.indeed.com/*",
+		"https://*.greenhouse.io/*",
+		"https://*.ziprecruiter.com/*"
+	  ]
 	}
   ]
 }

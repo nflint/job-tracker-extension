@@ -1,4 +1,13 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', async function() {
+  // Check if we're on a supported page
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const isSupported = tab.url.match(/linkedin\.com|indeed\.com|ziprecruiter\.com|greenhouse\.io/);
+  
+  if (!isSupported) {
+	showStatus('This page is not supported for job scraping', 'error');
+	document.getElementById('autofill').disabled = true;
+  }
+
   // Load saved webhook URL
   chrome.storage.sync.get(['webhookUrl'], function(result) {
 	if (!result.webhookUrl) {
@@ -7,10 +16,8 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // Get current tab URL
-  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-	document.getElementById('link').value = tabs[0].url;
-  });
-
+  document.getElementById('link').value = tab.url;
+  
   document.getElementById('save').addEventListener('click', sendToZapier);
   document.getElementById('autofill').addEventListener('click', autofillForm);
   document.getElementById('openOptions').addEventListener('click', function() {
@@ -22,20 +29,41 @@ async function autofillForm() {
   try {
 	const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 	
-	const result = await chrome.tabs.sendMessage(tab.id, { action: 'scrapeJob' });
+	// First, inject the content script if it's not already injected
+	try {
+	  await chrome.scripting.executeScript({
+		target: { tabId: tab.id },
+		files: ['content.js']
+	  });
+	} catch (error) {
+	  console.log('Content script already injected or failed to inject:', error);
+	}
+	
+	// Now try to send the message
+	const result = await new Promise((resolve, reject) => {
+	  chrome.tabs.sendMessage(tab.id, { action: 'scrapeJob' }, (response) => {
+		if (chrome.runtime.lastError) {
+		  reject(new Error(chrome.runtime.lastError.message));
+		  return;
+		}
+		resolve(response);
+	  });
+	});
 	
 	if (!result) {
 	  showStatus('Unable to scrape job data from this page', 'error');
 	  return;
 	}
 
+	// Populate form fields
 	document.getElementById('role').value = result.role || '';
 	document.getElementById('company').value = result.company || '';
 	document.getElementById('link').value = result.link || tab.url;
 	document.getElementById('description').value = result.description || '';
 	showStatus('Data auto-filled successfully!', 'success');
   } catch (error) {
-	showStatus('Error auto-filling data: ' + error.message, 'error');
+	console.error('Autofill error:', error);
+	showStatus('Error: Could not connect to page. Please refresh and try again.', 'error');
   }
 }
 
@@ -57,6 +85,7 @@ async function sendToZapier() {
 	timestamp: new Date().toISOString()
   };
 
+  // Basic validation
   if (!data.role || !data.company) {
 	showStatus('Please fill in at least the role and company fields.', 'error');
 	return;
@@ -69,7 +98,8 @@ async function sendToZapier() {
 	  headers: {
 		'Content-Type': 'application/json',
 		'Accept': 'application/json'
-	  }
+	  },
+	  mode: 'cors'
 	});
 
 	if (!response.ok) {
@@ -90,9 +120,11 @@ function showStatus(message, type) {
   statusElement.style.display = 'block';
   statusElement.className = 'status ' + type;
   
-  setTimeout(() => {
-	statusElement.style.display = 'none';
-  }, 3000);
+  if (type !== 'error') {  // Don't auto-hide error messages
+	setTimeout(() => {
+	  statusElement.style.display = 'none';
+	}, 3000);
+  }
 }
 
 function clearForm() {
@@ -103,6 +135,7 @@ function clearForm() {
   document.getElementById('rating').value = '3';
 }
 
+// Keyboard shortcuts
 document.addEventListener('keydown', function(e) {
   if (e.ctrlKey && e.key === 'Enter') {
 	sendToZapier();
