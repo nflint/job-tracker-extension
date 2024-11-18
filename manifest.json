@@ -3,6 +3,12 @@
   "name": "Job Search to Webhook",
   "version": "1.0",
   "description": "Send job listings to user defined webhook",
+  "icons": {
+	  "16": "icons/icon16.png",
+	  "32": "icons/icon32.png",
+	  "48": "icons/icon48.png",
+	  "128": "icons/icon128.png"
+	},
   "permissions": [
 	"activeTab",
 	"storage",
