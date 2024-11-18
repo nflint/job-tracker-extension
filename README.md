@@ -55,9 +55,9 @@
  ## Configuration
  
  1. Click the extension icon and select "Settings"
- 2. Enter your webhook URL (e.g., Zapier webhook)
- 3. Enter your email address
- 4. Paste your resume text for job matching
+ 2. Enter your webhook URL (e.g., Zapier webhook) 
+ 3. Enter your email address - this is only used as an ad-hoc user id
+ 4. Paste your resume text for job matching - in markdown preferably, its better for ai parsing
  5. Click "Save Settings"
  
  ## Usage
@@ -97,21 +97,18 @@
  
  ### Running Locally
  
- 1. Make file structure:
- ```bash
- mkdir -p job-tracker-extension/{css,js}
- touch job-tracker-extension/{manifest.json,popup.html,options.html,content.js,background.js}
- touch job-tracker-extension/css/{popup.css,options.css}
- touch job-tracker-extension/js/{popup.js,options.js}
- ```
+ 1. Download or clone via git
  
- 2. Copy the respective files from this repository
- 
- 3. Load in Chrome:
+ 2. Load in Chrome:
  - Open `chrome://extensions/`
  - Enable Developer Mode
  - Click "Load unpacked"
  - Select the extension directory
+ 
+ 3. if you don't have a webhook configured anywhere I can recommend several;
+ - Zapier trial version is pretty east to set up  
+ - [webhook.site(https://webhook.site/#!/view/dee280ad-7222-4e32-8485-db3a790b5abe)for testing only - I HAVE NO IDEA WHAT IS DONE WITH YOU DATA SO USE DUMMY DATA. 
+ 
  
  ### Testing
  
@@ -140,6 +137,8 @@
  - `tabs`: For accessing tab information
  
  ## Host Permissions
+ 
+ More can be added in `manifest.js`
  
  - `https://*.linkedin.com/*`
  - `https://*.indeed.com/*`
