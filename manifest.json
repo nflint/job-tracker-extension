@@ -1,0 +1,34 @@
+{
+  "manifest_version": 3,
+  "name": "Job Search to Zapier",
+  "version": "1.0",
+  "description": "Send job listings to Zapier",
+  "permissions": [
+	"activeTab",
+	"storage",
+	"scripting"
+  ],
+  "host_permissions": [
+	"https://*.linkedin.com/*",
+	"https://*.indeed.com/*",
+	"https://*.greenhouse.io/*",
+	"https://*.ziprecruiter.com/*",
+	"https://hooks.zapier.com/*"
+  ],
+  "action": {
+	"default_popup": "popup.html"
+  },
+  "options_page": "options.html",
+  "content_scripts": [
+	{
+	  "matches": [
+		"https://*.linkedin.com/jobs/*",
+		"https://*.indeed.com/*",
+		"https://boards.greenhouse.io/*/jobs/*",
+		"https://*.ziprecruiter.com/jobs/*",
+		"https://*.ziprecruiter.com/job/*"
+	  ],
+	  "js": ["content.js"]
+	}
+  ]
+}

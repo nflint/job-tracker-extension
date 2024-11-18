@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Job Application Tracker</title>
+  <link rel="stylesheet" href="css/popup.css">
+</head>
+<body>
+  <div class="container">
+	<h2>Add Job Listing</h2>
+	<button id="autofill" class="btn">Autofill from Page</button>
+	
+	<div class="form-group">
+	  <label for="role">Role:</label>
+	  <input type="text" id="role" name="role">
+	</div>
+	
+	<div class="form-group">
+	  <label for="company">Company:</label>
+	  <input type="text" id="company" name="company">
+	</div>
+	
+	<div class="form-group">
+	  <label for="link">Link:</label>
+	  <input type="text" id="link" name="link">
+	</div>
+	
+	<div class="form-group">
+	  <label for="notes">Notes:</label>
+	  <textarea id="notes" name="notes" rows="3"></textarea>
+	</div>
+	
+	<div class="form-group">
+	  <label for="rating">Rating:</label>
+	  <select id="rating" name="rating">
+		<option value="1">1 - Not Exciting</option>
+		<option value="2">2 - Somewhat Exciting</option>
+		<option value="3">3 - Exciting</option>
+		<option value="4">4 - Very Exciting</option>
+		<option value="5">5 - Super Exciting</option>
+	  </select>
+	</div>
+	
+	<div class="form-group">
+	  <label for="description">Description:</label>
+	  <textarea id="description" name="description" rows="5"></textarea>
+	</div>
+	
+	<div class="button-group">
+		<button id="autofill" class="btn">Autofill from Page</button>
+	  <button id="save" class="btn primary">Add To List</button>
+	  <button id="openOptions" class="btn secondary">Settings</button>
+	</div>
+	
+	<div id="status" class="status"></div>
+  </div>
+  <script src="js/popup.js"></script>
+</body>
+</html>
