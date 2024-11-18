@@ -120,7 +120,7 @@
  
  3. if you don't have a webhook configured anywhere I can recommend several;
  - Zapier trial version is pretty east to set up and you won't have to make changes to the manifest.js file. 
- - [webhook.site(https://webhook.site/#!/view/dee280ad-7222-4e32-8485-db3a790b5abe)for testing only - I HAVE NO IDEA WHAT IS DONE WITH YOU DATA SO USE DUMMY DATA. 
+ - [webhook.site(https://webhook.site/#!/view/dee280ad-7222-4e32-8485-db3a790b5abe)]for testing only - I HAVE NO IDEA WHAT IS DONE WITH YOU DATA SO USE DUMMY DATA. 
  
  
  ### Testing
