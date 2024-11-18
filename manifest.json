@@ -1,14 +1,17 @@
 {
   "manifest_version": 3,
-  "name": "Job Search to Zapier",
+  "name": "Job Search to Webhook",
   "version": "1.0",
-  "description": "Send job listings to Zapier",
+  "description": "Send job listings to user defined webhook",
   "permissions": [
 	"activeTab",
 	"storage",
 	"scripting",
 	"tabs"
   ],
+  "background": {
+	"service_worker": "background.js"
+  },
   "host_permissions": [
 	"https://*.linkedin.com/*",
 	"https://*.indeed.com/*",

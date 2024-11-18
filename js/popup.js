@@ -1,145 +1,114 @@
-document.addEventListener('DOMContentLoaded', async function() {
-  // Check if we're on a supported page
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  const isSupported = tab.url.match(/linkedin\.com|indeed\.com|ziprecruiter\.com|greenhouse\.io/);
-  
-  if (!isSupported) {
-	showStatus('This page is not supported for job scraping', 'error');
-	document.getElementById('autofill').disabled = true;
+// popup.js
+let currentTab = null;
+
+async function ensureContentScriptLoaded() {
+  if (!currentTab?.id) {
+	throw new Error('No active tab');
   }
 
-  // Load saved webhook URL
-  chrome.storage.sync.get(['webhookUrl'], function(result) {
-	if (!result.webhookUrl) {
-	  showStatus('Please configure Zapier webhook URL in settings', 'error');
+  console.log('[Job Scraper] Ensuring content script is loaded...');
+  
+  // First try to ping existing content script
+  try {
+	const response = await chrome.tabs.sendMessage(currentTab.id, { action: 'ping' });
+	if (response?.status === 'ready') {
+	  console.log('[Job Scraper] Content script already loaded');
+	  return true;
 	}
+  } catch (error) {
+	console.log('[Job Scraper] Content script not responding, will inject');
+  }
+
+  // If ping failed, try to inject
+  const result = await chrome.runtime.sendMessage({ 
+	action: 'ensureContentScriptLoaded',
+	tabId: currentTab.id
   });
 
-  // Get current tab URL
-  document.getElementById('link').value = tab.url;
-  
-  document.getElementById('save').addEventListener('click', sendToZapier);
-  document.getElementById('autofill').addEventListener('click', autofillForm);
-  document.getElementById('openOptions').addEventListener('click', function() {
-	chrome.runtime.openOptionsPage();
-  });
-});
+  if (!result.success) {
+	throw new Error('Failed to inject content script');
+  }
+
+  // Wait a bit for script to initialize
+  await new Promise(resolve => setTimeout(resolve, 100));
+  return true;
+}
 
 async function autofillForm() {
   try {
-	const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+	showStatus('Connecting to page...', 'info');
 	
-	// First, inject the content script if it's not already injected
-	try {
-	  await chrome.scripting.executeScript({
-		target: { tabId: tab.id },
-		files: ['content.js']
-	  });
-	} catch (error) {
-	  console.log('Content script already injected or failed to inject:', error);
-	}
+	// Ensure content script is loaded
+	await ensureContentScriptLoaded();
 	
-	// Now try to send the message
-	const result = await new Promise((resolve, reject) => {
-	  chrome.tabs.sendMessage(tab.id, { action: 'scrapeJob' }, (response) => {
-		if (chrome.runtime.lastError) {
-		  reject(new Error(chrome.runtime.lastError.message));
-		  return;
-		}
-		resolve(response);
-	  });
+	// Try to scrape the data
+	const response = await chrome.tabs.sendMessage(currentTab.id, { 
+	  action: 'scrapeJob' 
 	});
+
+	if (!response || !response.success) {
+	  throw new Error(response?.error || 'Failed to scrape job data');
+	}
+
+	const data = response.data;
 	
-	if (!result) {
-	  showStatus('Unable to scrape job data from this page', 'error');
+	// Populate form fields
+	document.getElementById('role').value = data.role || '';
+	document.getElementById('company').value = data.company || '';
+	document.getElementById('link').value = data.link || currentTab.url;
+	document.getElementById('description').value = data.description || '';
+	
+	showStatus('Data auto-filled successfully!', 'success');
+  } catch (error) {
+	console.error('[Job Scraper] Autofill error:', error);
+	showStatus('Error: ' + error.message, 'error');
+	
+	// If we got a connection error, suggest refresh
+	if (error.message.includes('connect')) {
+	  showStatus('Please refresh the page and try again', 'error');
+	}
+  }
+}
+
+// Initialize popup
+document.addEventListener('DOMContentLoaded', async function() {
+  try {
+	// Get current tab
+	const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+	currentTab = tabs[0];
+	
+	// Check if we're on a supported page
+	const isSupported = currentTab.url.match(/linkedin\.com|indeed\.com|ziprecruiter\.com|greenhouse\.io/);
+	
+	if (!isSupported) {
+	  showStatus('This page is not supported for job scraping', 'error');
+	  document.getElementById('autofill').disabled = true;
 	  return;
 	}
 
-	// Populate form fields
-	document.getElementById('role').value = result.role || '';
-	document.getElementById('company').value = result.company || '';
-	document.getElementById('link').value = result.link || tab.url;
-	document.getElementById('description').value = result.description || '';
-	showStatus('Data auto-filled successfully!', 'success');
-  } catch (error) {
-	console.error('Autofill error:', error);
-	showStatus('Error: Could not connect to page. Please refresh and try again.', 'error');
-  }
-}
-
-async function sendToZapier() {
-  const { webhookUrl } = await chrome.storage.sync.get(['webhookUrl']);
-  
-  if (!webhookUrl) {
-	showStatus('Please configure Zapier webhook URL in settings', 'error');
-	return;
-  }
-
-  const data = {
-	role: document.getElementById('role').value.trim(),
-	company: document.getElementById('company').value.trim(),
-	link: document.getElementById('link').value.trim(),
-	description: document.getElementById('description').value.trim(),
-	notes: document.getElementById('notes').value.trim(),
-	rating: document.getElementById('rating').value,
-	timestamp: new Date().toISOString()
-  };
-
-  // Basic validation
-  if (!data.role || !data.company) {
-	showStatus('Please fill in at least the role and company fields.', 'error');
-	return;
-  }
-
-  try {
-	const response = await fetch(webhookUrl, {
-	  method: 'POST',
-	  body: JSON.stringify(data),
-	  headers: {
-		'Content-Type': 'application/json',
-		'Accept': 'application/json'
-	  },
-	  mode: 'cors'
-	});
-
-	if (!response.ok) {
-	  throw new Error(`Failed to send data: ${response.status}`);
+	// Load saved webhook URL
+	const result = await chrome.storage.sync.get(['webhookUrl']);
+	if (!result.webhookUrl) {
+	  showStatus('Please configure webhook URL in settings', 'error');
 	}
 
-	showStatus('Job listing sent successfully!', 'success');
-	clearForm();
+	// Set current URL
+	document.getElementById('link').value = currentTab.url;
+	
+	// Add event listeners
+	document.getElementById('save').addEventListener('click', sendToZapier);
+	document.getElementById('autofill').addEventListener('click', autofillForm);
+	document.getElementById('openOptions').addEventListener('click', () => {
+	  chrome.runtime.openOptionsPage();
+	});
+
+	// Try to pre-load content script
+	ensureContentScriptLoaded().catch(console.error);
+	
   } catch (error) {
-	console.error('Error details:', error);
-	showStatus('Error sending data: ' + error.message, 'error');
-  }
-}
-
-function showStatus(message, type) {
-  const statusElement = document.getElementById('status');
-  statusElement.textContent = message;
-  statusElement.style.display = 'block';
-  statusElement.className = 'status ' + type;
-  
-  if (type !== 'error') {  // Don't auto-hide error messages
-	setTimeout(() => {
-	  statusElement.style.display = 'none';
-	}, 3000);
-  }
-}
-
-function clearForm() {
-  document.getElementById('role').value = '';
-  document.getElementById('company').value = '';
-  document.getElementById('description').value = '';
-  document.getElementById('notes').value = '';
-  document.getElementById('rating').value = '3';
-}
-
-// Keyboard shortcuts
-document.addEventListener('keydown', function(e) {
-  if (e.ctrlKey && e.key === 'Enter') {
-	sendToZapier();
-  } else if (e.ctrlKey && e.key === 'b') {
-	autofillForm();
+	console.error('[Job Scraper] Initialization error:', error);
+	showStatus('Error initializing extension', 'error');
   }
 });
+
+// Rest of your existing popup.js code (sendToZapier, showStatus, etc.)...
