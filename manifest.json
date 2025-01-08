@@ -43,7 +43,7 @@
   ],
   "web_accessible_resources": [
 	{
-	  "resources": ["content.js"],
+	  "resources": ["content.js", "js/cache.js"],
 	  "matches": [
 		"https://*.linkedin.com/*",
 		"https://*.indeed.com/*",

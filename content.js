@@ -1,6 +1,20 @@
-// content.js
+/**
+ * Job Scraper Content Script
+ * 
+ * This content script runs on supported job listing pages to scrape job details.
+ * It handles:
+ * - Extracting job details like title, company, and description
+ * - Cleaning and formatting the extracted content
+ * - Communicating with the extension background script
+ */
+
 console.log('[Job Scraper] Content script loaded and running');
 
+/**
+ * Selector configurations for supported job sites
+ * Each site has selectors for role, company and description fields
+ * @type {Object.<string, Object>}
+ */
 const SELECTORS = {
   'linkedin.com': {
 	role: {
@@ -49,7 +63,10 @@ const SELECTORS = {
 // Notify that the content script is ready
 chrome.runtime.sendMessage({ action: 'CONTENT_SCRIPT_LOADED' });
 
-// Set up message listener
+/**
+ * Sets up message listeners for communication with the extension
+ * Handles scraping requests and ping checks
+ */
 chrome.runtime.onMessage.addListener(
   function(request, sender, sendResponse) {
 	console.log('[Job Scraper] Message received:', request);
@@ -71,6 +88,11 @@ chrome.runtime.onMessage.addListener(
   }
 );
 
+/**
+ * Gets the hostname from the current URL and matches it to supported domains
+ * @param {string} url - The URL to parse
+ * @returns {string|null} Matching domain from SELECTORS or null if not supported
+ */
 function getHostname(url) {
   const hostname = new URL(url).hostname;
   console.log('[Job Scraper] Current hostname:', hostname);
@@ -79,6 +101,13 @@ function getHostname(url) {
   return domain;
 }
 
+/**
+ * Extracts content from a DOM element based on the specified type
+ * @param {Element} element - DOM element to extract from
+ * @param {string} type - Type of content ('text' or 'html')
+ * @param {string} field - Name of the field being extracted
+ * @returns {string} Extracted and cleaned content
+ */
 function extractContent(element, type, field) {
   console.log(`[Job Scraper] Extracting ${field} content:`, { element, type });
   
@@ -97,6 +126,11 @@ function extractContent(element, type, field) {
   return rawContent.trim();
 }
 
+/**
+ * Cleans HTML content by removing unwanted tags and formatting
+ * @param {string} html - Raw HTML content
+ * @returns {string} Cleaned and formatted text content
+ */
 function cleanHTML(html) {
   if (!html) return '';
   
@@ -127,6 +161,12 @@ function cleanHTML(html) {
 	.join('\n');
 }
 
+/**
+ * Main function to scrape job data from the current page
+ * Uses domain-specific selectors to extract job details
+ * @returns {Object} Scraped job data including role, company, description and link
+ * @throws {Error} If the website is not supported
+ */
 function scrapeJobData() {
   console.log('[Job Scraper] Starting job data scrape...');
   

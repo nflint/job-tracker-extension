@@ -1,3 +1,5 @@
+import { cachedFetch, clearCache } from './cache.js';
+
 let currentTab = null;
 
 async function ensureContentScriptLoaded() {
@@ -76,10 +78,8 @@ async function saveJob() {
 	  notes: document.getElementById('notes').value.trim(),
 	  rating: document.getElementById('rating').value,
 	  timestamp: new Date().toISOString(),
-	  // Add resume and email if they exist
 	  resume: resume || '',
 	  email: email || '',
-	  // Add metadata
 	  source: new URL(document.getElementById('link').value.trim()).hostname,
 	  browser: navigator.userAgent,
 	  scrapeDate: new Date().toISOString()
@@ -92,7 +92,8 @@ async function saveJob() {
 
 	showStatus('Sending data...', 'info');
 
-	const response = await fetch(webhookUrl, {
+	// Use cachedFetch for POST request (won't be cached due to POST method)
+	const response = await cachedFetch(webhookUrl, {
 	  method: 'POST',
 	  headers: {
 		'Content-Type': 'application/json',
@@ -105,7 +106,6 @@ async function saveJob() {
 	  throw new Error(`Failed to send data: ${response.status}`);
 	}
 
-	// Log successful submission for debugging
 	console.log('[Job Scraper] Job saved successfully with data:', {
 	  ...data,
 	  resume: data.resume ? 'Resume included (length: ' + data.resume.length + ')' : 'No resume',
@@ -179,6 +179,9 @@ function clearForm() {
   document.getElementById('description').value = '';
   document.getElementById('notes').value = '';
   document.getElementById('rating').value = '3';
+  
+  // Clear cache when form is cleared to ensure fresh data on next load
+  clearCache().catch(console.error);
 }
 
 function showStatus(message, type) {
