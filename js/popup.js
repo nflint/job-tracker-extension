@@ -132,10 +132,10 @@ document.addEventListener('DOMContentLoaded', async function() {
 	// Check if we're on a supported page
 	const isSupported = currentTab.url.match(/linkedin\.com|indeed\.com|ziprecruiter\.com|greenhouse\.io/);
 	
+	// Only disable autofill if not on supported page
 	if (!isSupported) {
-	  showStatus('This page is not supported for job scraping', 'error');
 	  document.getElementById('autofill').disabled = true;
-	  return;
+	  showStatus('This page is not supported for job scraping', 'info');
 	}
 
 	// Load saved configuration
@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 	console.log('[Job Scraper] Popup initialized successfully');
   } catch (error) {
 	console.error('[Job Scraper] Initialization error:', error);
-	showStatus('Error initializing extension', 'error');
+	showStatus('Failed to initialize popup', 'error');
   }
 });
 
@@ -195,56 +195,12 @@ function showStatus(message, type) {
 }
 
 function openOptions() {
-  chrome.runtime.openOptionsPage();
-}
-
-// Initialize popup
-document.addEventListener('DOMContentLoaded', async function() {
-  try {
-	console.log('[Job Scraper] Initializing popup...');
-	
-	// Get current tab
-	const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-	currentTab = tabs[0];
-	
-	// Check if we're on a supported page
-	const isSupported = currentTab.url.match(/linkedin\.com|indeed\.com|ziprecruiter\.com|greenhouse\.io/);
-	
-	if (!isSupported) {
-	  showStatus('This page is not supported for job scraping', 'error');
-	  document.getElementById('autofill').disabled = true;
-	  return;
-	}
-
-	// Load saved webhook URL
-	const result = await chrome.storage.sync.get(['webhookUrl']);
-	if (!result.webhookUrl) {
-	  showStatus('Please configure webhook URL in settings', 'error');
-	}
-
-	// Set current URL
-	document.getElementById('link').value = currentTab.url;
-	
-	console.log('[Job Scraper] Setting up event listeners...');
-	
-	// Add button event listeners
-	const autofillButton = document.getElementById('autofill');
-	const saveButton = document.getElementById('save');
-	const optionsButton = document.getElementById('openOptions');
-
-	if (autofillButton) autofillButton.addEventListener('click', autofillForm);
-	if (saveButton) saveButton.addEventListener('click', saveJob);
-	if (optionsButton) optionsButton.addEventListener('click', openOptions);
-
-	// Try to pre-load content script
-	ensureContentScriptLoaded().catch(console.error);
-	
-	console.log('[Job Scraper] Popup initialized successfully');
-  } catch (error) {
-	console.error('[Job Scraper] Initialization error:', error);
-	showStatus('Error initializing extension', 'error');
+  if (chrome.runtime.openOptionsPage) {
+    chrome.runtime.openOptionsPage();
+  } else {
+    window.open(chrome.runtime.getURL('options.html'));
   }
-});
+}
 
 // Keyboard shortcuts
 document.addEventListener('keydown', function(e) {
