@@ -178,3 +178,75 @@
  ## Support
  
  For support, please open an issue in the repository.
+
+ ## Technical Documentation
+ 
+ ### Architecture Overview
+ 
+ The extension follows Chrome's Manifest V3 architecture with the following key components:
+ 
+ - **Background Service Worker** (`background.js`): Manages content script injection and tab tracking
+ - **Content Script** (`content.js`): Handles job listing page scraping and DOM interactions
+ - **Popup UI** (`popup.html/js`): User interface for viewing/editing job details
+ - **Options Page** (`options.html/js`): Configuration interface for webhook and user settings
+ 
+ ### Key Components
+ 
+ #### Background Service Worker
+ - Maintains registry of tabs with loaded content scripts
+ - Handles content script injection requests
+ - Manages tab lifecycle events
+ - Implements message passing between components
+ 
+ #### Content Script
+ - Executes in the context of job listing pages
+ - Implements site-specific scraping logic
+ - Extracts job details (title, company, description, etc.)
+ - Communicates with background worker via messages
+ 
+ #### Storage
+ The extension uses Chrome's storage API for:
+ - Webhook URL configuration
+ - User email/resume storage
+ - Job application history
+ - Extension settings
+ 
+ ### Message Passing
+ 
+ Components communicate using Chrome's message passing system:
+ 
+ 1. Content Script → Background:
+    - `CONTENT_SCRIPT_LOADED`: Signals successful injection
+    - `JOB_DATA`: Sends scraped job details
+ 
+ 2. Popup → Background:
+    - `ensureContentScriptLoaded`: Requests script injection
+    - `getJobDetails`: Requests current page data
+ 
+ 3. Background → Content Script:
+    - Script injection responses
+    - Data request forwarding
+ 
+ ### Data Flow
+ 
+ 1. User navigates to job listing
+ 2. Background worker injects content script
+ 3. Content script scrapes page data
+ 4. User opens popup to view/edit details
+ 5. Data sent to configured webhook
+ 
+ ### Error Handling
+ 
+ - Failed script injection logging
+ - Invalid webhook URL detection
+ - Unsupported site handling
+ - Storage quota management
+ - Network request retries
+ 
+ ### Security Considerations
+ 
+ - Host permissions limited to job sites
+ - Webhook URL validation
+ - No sensitive data storage
+ - CSP compliance
+ - Sanitized data handling
