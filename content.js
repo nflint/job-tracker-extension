@@ -8,6 +8,8 @@
  * - Communicating with the extension background script
  */
 
+import { scrapeProfile, isProfilePage } from './js/linkedin-scraper.js';
+
 console.log('[Job Scraper] Content script loaded and running');
 
 /**
@@ -72,11 +74,18 @@ chrome.runtime.onMessage.addListener(
 	console.log('[Job Scraper] Message received:', request);
 	
 	if (request.action === 'scrapeJob') {
-	  console.log('[Job Scraper] Starting job scraping...');
+	  console.log('[Job Scraper] Starting scraping...');
 	  try {
-		const data = scrapeJobData();
-		console.log('[Job Scraper] Scraped data:', data);
-		sendResponse({ success: true, data: data });
+		// Check if we're on a profile page
+		if (isProfilePage()) {
+		  const profileData = scrapeProfile();
+		  console.log('[Job Scraper] Scraped profile data:', profileData);
+		  sendResponse({ success: true, data: profileData, type: 'profile' });
+		} else {
+		  const jobData = scrapeJobData();
+		  console.log('[Job Scraper] Scraped job data:', jobData);
+		  sendResponse({ success: true, data: jobData, type: 'job' });
+		}
 	  } catch (error) {
 		console.error('[Job Scraper] Scraping error:', error);
 		sendResponse({ success: false, error: error.message });

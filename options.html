@@ -9,10 +9,20 @@
 	<h1>Job Tracker Settings</h1>
 	
 	<div class="section">
-	  <h2>Generic Webhook Integration</h2>
+	  <h2>Job Listings Integration</h2>
 	  <div class="form-group">
-		<label for="webhook">Webhook URL:</label>
-		<input type="text" id="webhook" name="webhook" placeholder="https://hooks.zapier.com/...">
+		<label for="jobWebhook">Job Listings Webhook URL:</label>
+		<input type="text" id="jobWebhook" name="jobWebhook" placeholder="https://hooks.zapier.com/...">
+		<small class="help-text">Webhook endpoint for job listing data</small>
+	  </div>
+	</div>
+
+	<div class="section">
+	  <h2>Profile Integration</h2>
+	  <div class="form-group">
+		<label for="profileWebhook">Profile Data Webhook URL:</label>
+		<input type="text" id="profileWebhook" name="profileWebhook" placeholder="https://hooks.zapier.com/...">
+		<small class="help-text">Webhook endpoint for LinkedIn profile data</small>
 	  </div>
 	</div>
 	

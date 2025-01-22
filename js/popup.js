@@ -1,6 +1,7 @@
 import { cachedFetch, clearCache } from './cache.js';
 
 let currentTab = null;
+let currentDataType = 'job'; // 'job' or 'profile'
 
 async function ensureContentScriptLoaded() {
   if (!currentTab?.id) {
@@ -32,6 +33,22 @@ async function ensureContentScriptLoaded() {
   return true;
 }
 
+function formatExperience(experience) {
+  return experience.map(job => 
+    `${job.title} at ${job.company}\n${job.duration}\n${job.description}`
+  ).join('\n\n');
+}
+
+function formatEducation(education) {
+  return education.map(edu => 
+    `${edu.school}\n${edu.degree}\n${edu.duration}`
+  ).join('\n\n');
+}
+
+function formatSkills(skills) {
+  return skills.map(skill => skill.text).join(', ');
+}
+
 async function autofillForm() {
   try {
 	showStatus('Connecting to page...', 'info');
@@ -43,15 +60,27 @@ async function autofillForm() {
 	});
 
 	if (!response || !response.success) {
-	  throw new Error(response?.error || 'Failed to scrape job data');
+	  throw new Error(response?.error || 'Failed to scrape data');
 	}
 
+	currentDataType = response.type;
+	document.getElementById('jobForm').style.display = response.type === 'job' ? 'block' : 'none';
+	document.getElementById('profileForm').style.display = response.type === 'profile' ? 'block' : 'none';
+
 	const data = response.data;
-	
-	document.getElementById('role').value = data.role || '';
-	document.getElementById('company').value = data.company || '';
-	document.getElementById('link').value = data.link || currentTab.url;
-	document.getElementById('description').value = data.description || '';
+	if (response.type === 'profile') {
+	  document.getElementById('profileName').value = data.name || '';
+	  document.getElementById('headline').value = data.headline || '';
+	  document.getElementById('about').value = data.about || '';
+	  document.getElementById('experience').value = formatExperience(data.experience || []);
+	  document.getElementById('education').value = formatEducation(data.education || []);
+	  document.getElementById('skills').value = formatSkills(data.skills || []);
+	} else {
+	  document.getElementById('role').value = data.role || '';
+	  document.getElementById('company').value = data.company || '';
+	  document.getElementById('link').value = data.link || currentTab.url;
+	  document.getElementById('description').value = data.description || '';
+	}
 	
 	showStatus('Data auto-filled successfully!', 'success');
   } catch (error) {
@@ -60,39 +89,67 @@ async function autofillForm() {
   }
 }
 
-async function saveJob() {
+async function saveData() {
   try {
-	// Get webhook URL, resume, and email from storage
-	const { webhookUrl, resume, email } = await chrome.storage.sync.get(['webhookUrl', 'resume', 'email']);
+	// Get appropriate webhook based on data type
+	const { jobWebhook, profileWebhook, resume, email } = await chrome.storage.sync.get(
+	  ['jobWebhook', 'profileWebhook', 'resume', 'email']
+	);
+
+	const webhookUrl = currentDataType === 'job' ? jobWebhook : profileWebhook;
 	
 	if (!webhookUrl) {
-	  showStatus('Please configure webhook URL in settings', 'error');
+	  showStatus(`Please configure ${currentDataType} webhook URL in settings`, 'error');
 	  return;
 	}
 
-	const data = {
-	  role: document.getElementById('role').value.trim(),
-	  company: document.getElementById('company').value.trim(),
-	  link: document.getElementById('link').value.trim(),
-	  description: document.getElementById('description').value.trim(),
-	  notes: document.getElementById('notes').value.trim(),
-	  rating: document.getElementById('rating').value,
-	  timestamp: new Date().toISOString(),
-	  resume: resume || '',
-	  email: email || '',
-	  source: new URL(document.getElementById('link').value.trim()).hostname,
-	  browser: navigator.userAgent,
-	  scrapeDate: new Date().toISOString()
-	};
+	let data;
+	if (currentDataType === 'profile') {
+	  data = {
+		type: 'profile',
+		name: document.getElementById('profileName').value.trim(),
+		headline: document.getElementById('headline').value.trim(),
+		about: document.getElementById('about').value.trim(),
+		experience: document.getElementById('experience').value.trim(),
+		education: document.getElementById('education').value.trim(),
+		skills: document.getElementById('skills').value.trim(),
+		link: currentTab.url,
+		timestamp: new Date().toISOString(),
+		email: email || '',
+		source: new URL(currentTab.url).hostname,
+		browser: navigator.userAgent,
+		scrapeDate: new Date().toISOString()
+	  };
 
-	if (!data.role || !data.company) {
-	  showStatus('Please fill in at least the role and company fields.', 'error');
-	  return;
+	  if (!data.name) {
+		showStatus('Profile name is required', 'error');
+		return;
+	  }
+	} else {
+	  data = {
+		type: 'job',
+		role: document.getElementById('role').value.trim(),
+		company: document.getElementById('company').value.trim(),
+		link: document.getElementById('link').value.trim(),
+		description: document.getElementById('description').value.trim(),
+		notes: document.getElementById('notes').value.trim(),
+		rating: document.getElementById('rating').value,
+		timestamp: new Date().toISOString(),
+		resume: resume || '',
+		email: email || '',
+		source: new URL(document.getElementById('link').value.trim()).hostname,
+		browser: navigator.userAgent,
+		scrapeDate: new Date().toISOString()
+	  };
+
+	  if (!data.role || !data.company) {
+		showStatus('Role and company are required for job listings', 'error');
+		return;
+	  }
 	}
 
 	showStatus('Sending data...', 'info');
 
-	// Use cachedFetch for POST request (won't be cached due to POST method)
 	const response = await cachedFetch(webhookUrl, {
 	  method: 'POST',
 	  headers: {
@@ -106,62 +163,51 @@ async function saveJob() {
 	  throw new Error(`Failed to send data: ${response.status}`);
 	}
 
-	console.log('[Job Scraper] Job saved successfully with data:', {
+	console.log(`[Job Scraper] ${currentDataType} data saved successfully:`, {
 	  ...data,
-	  resume: data.resume ? 'Resume included (length: ' + data.resume.length + ')' : 'No resume',
+	  resume: data.resume ? `Resume included (length: ${data.resume.length})` : 'No resume',
 	  email: data.email ? 'Email included' : 'No email'
 	});
 
-	showStatus('Job saved successfully!', 'success');
+	showStatus('Data saved successfully!', 'success');
 	clearForm();
   } catch (error) {
 	console.error('[Job Scraper] Save error:', error);
-	showStatus('Error saving job: ' + error.message, 'error');
+	showStatus('Error saving data: ' + error.message, 'error');
   }
 }
 
-// Update initialization to check for resume and email
 document.addEventListener('DOMContentLoaded', async function() {
   try {
 	console.log('[Job Scraper] Initializing popup...');
 	
-	// Get current tab
 	const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
 	currentTab = tabs[0];
 	
-	// Check if we're on a supported page
 	const isSupported = currentTab.url.match(/linkedin\.com|indeed\.com|ziprecruiter\.com|greenhouse\.io/);
 	
-	// Only disable autofill if not on supported page
 	if (!isSupported) {
 	  document.getElementById('autofill').disabled = true;
-	  showStatus('This page is not supported for job scraping', 'info');
+	  showStatus('This page is not supported for scraping', 'info');
 	}
 
-	// Load saved configuration
-	const config = await chrome.storage.sync.get(['webhookUrl', 'resume', 'email']);
-	if (!config.webhookUrl) {
-	  showStatus('Please configure webhook URL in settings', 'error');
-	}
-	if (!config.resume || !config.email) {
-	  showStatus('Resume or email not configured in settings', 'info');
+	const config = await chrome.storage.sync.get(['jobWebhook', 'profileWebhook', 'resume', 'email']);
+	if (!config.jobWebhook && !config.profileWebhook) {
+	  showStatus('Please configure webhook URLs in settings', 'error');
 	}
 
-	// Set current URL
 	document.getElementById('link').value = currentTab.url;
 	
 	console.log('[Job Scraper] Setting up event listeners...');
 	
-	// Add button event listeners
 	const autofillButton = document.getElementById('autofill');
 	const saveButton = document.getElementById('save');
 	const optionsButton = document.getElementById('openOptions');
 
 	if (autofillButton) autofillButton.addEventListener('click', autofillForm);
-	if (saveButton) saveButton.addEventListener('click', saveJob);
+	if (saveButton) saveButton.addEventListener('click', saveData);
 	if (optionsButton) optionsButton.addEventListener('click', openOptions);
 
-	// Try to pre-load content script
 	ensureContentScriptLoaded().catch(console.error);
 	
 	console.log('[Job Scraper] Popup initialized successfully');
@@ -171,16 +217,22 @@ document.addEventListener('DOMContentLoaded', async function() {
   }
 });
 
-// Rest of your existing popup.js code remains the same...
-
 function clearForm() {
-  document.getElementById('role').value = '';
-  document.getElementById('company').value = '';
-  document.getElementById('description').value = '';
-  document.getElementById('notes').value = '';
-  document.getElementById('rating').value = '3';
+  if (currentDataType === 'profile') {
+	document.getElementById('profileName').value = '';
+	document.getElementById('headline').value = '';
+	document.getElementById('about').value = '';
+	document.getElementById('experience').value = '';
+	document.getElementById('education').value = '';
+	document.getElementById('skills').value = '';
+  } else {
+	document.getElementById('role').value = '';
+	document.getElementById('company').value = '';
+	document.getElementById('description').value = '';
+	document.getElementById('notes').value = '';
+	document.getElementById('rating').value = '3';
+  }
   
-  // Clear cache when form is cleared to ensure fresh data on next load
   clearCache().catch(console.error);
 }
 
@@ -205,10 +257,9 @@ function openOptions() {
   }
 }
 
-// Keyboard shortcuts
 document.addEventListener('keydown', function(e) {
   if (e.ctrlKey && e.key === 'Enter') {
-	saveJob();
+	saveData();
   } else if (e.ctrlKey && e.key === 'b') {
 	autofillForm();
   }

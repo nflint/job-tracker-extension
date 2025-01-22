@@ -2,9 +2,12 @@ document.addEventListener('DOMContentLoaded', loadSettings);
 document.getElementById('save').addEventListener('click', saveSettings);
 
 function loadSettings() {
-  chrome.storage.sync.get(['webhookUrl', 'email', 'resume'], function(data) {
-	if (data.webhookUrl) {
-	  document.getElementById('webhook').value = data.webhookUrl;
+  chrome.storage.sync.get(['jobWebhook', 'profileWebhook', 'email', 'resume'], function(data) {
+	if (data.jobWebhook) {
+	  document.getElementById('jobWebhook').value = data.jobWebhook;
+	}
+	if (data.profileWebhook) {
+	  document.getElementById('profileWebhook').value = data.profileWebhook;
 	}
 	if (data.email) {
 	  document.getElementById('email').value = data.email;
@@ -16,12 +19,19 @@ function loadSettings() {
 }
 
 function saveSettings() {
-  const webhookUrl = document.getElementById('webhook').value.trim();
+  const jobWebhook = document.getElementById('jobWebhook').value.trim();
+  const profileWebhook = document.getElementById('profileWebhook').value.trim();
   const email = document.getElementById('email').value.trim();
   const resume = document.getElementById('resume').value.trim();
 
+  if (!jobWebhook && !profileWebhook) {
+    showStatus('At least one webhook URL is required', 'error');
+    return;
+  }
+
   chrome.storage.sync.set({
-	webhookUrl,
+	jobWebhook,
+	profileWebhook,
 	email,
 	resume
   }, function() {
